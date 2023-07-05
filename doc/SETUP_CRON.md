@@ -6,7 +6,7 @@ Create a wrapper script to call the bot, for example create bot-daily.sh contain
 
 ```bash
 #!/bin/bash
-node /home/user/lemmy-postbot/build/src/index.js
+node /home/user/lemmy-postbot/dist/lemmy-post-bot.js
 ```
 
 Set permissions

@@ -6,7 +6,7 @@ Posts a daily discussion thread using the lemmy API.
 
 1. Run `npm install`
 2. Run `npm run build`
-3. In build/src create a settings.json file
+3. In the `dist` folder create a settings.json file
 
 Your settings.json file should have this content:
 
@@ -21,7 +21,7 @@ Your settings.json file should have this content:
 
 ## Use ##
 
-To run the bot: `node build/src/index.js`
+To run the bot: `node dist/lemmy-post-bot.js`
 
 ## Nightly Run
 

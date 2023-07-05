@@ -1,4 +1,4 @@
-import { LemmyHttp, Login, CreatePost, PostView, FeaturePost } from 'lemmy-js-client';
+import { LemmyHttp, Login, CreatePost, PostView, FeaturePost, GetPosts } from 'lemmy-js-client';
 import { Settings } from './settings.interface';
 import fs from 'fs';
 
@@ -14,7 +14,8 @@ async function runBot() {
   }
   
   // Post title/ date string can be set here
-  let postTitle = `Daily Discussion Thread - ${(new Date()).toDateString()}`;
+  let postTitleDaily = "Daily Discussion Thread";
+  let postTitle = `${postTitleDaily} - ${(new Date()).toDateString()}`;
   console.log(`Using post title: ${postTitle}`);
 
   let loginResult = await doLogin(config);
@@ -24,8 +25,14 @@ async function runBot() {
   console.log(`Log in successful`);
 
   let authString = loginResult;
-  //await doLemmyPost(config, authString, postTitle, true);
+  let newPost = await doLemmyPost(config, authString, postTitle, true);
   
+  // unfeature posts except for our new post
+  let featuredPosts = await getLemmyCommunityPostIDs(config, authString, postTitleDaily, true);
+  featuredPosts.filter((v) => ((v != newPost) || !newPost)).forEach(async (fp) => {
+    await doLemmyPostUnfeature(config, authString, fp);
+  });
+
   // tag a specific post
   //await doLemmyPostFeature(config, authString, 259388);
 }
@@ -57,7 +64,7 @@ async function doLogin(config: Settings): Promise<string | null> {
  * @param postTitle   Title of new post
  * @param featured    Feature/sticky the new post true/false
  */
-async function doLemmyPost(config: Settings, authString: string, postTitle: string, featured: boolean) {
+async function doLemmyPost(config: Settings, authString: string, postTitle: string, featured: boolean): Promise<number> {
   
   let client: LemmyHttp = new LemmyHttp(config.baseURL, undefined);
 
@@ -78,8 +85,10 @@ async function doLemmyPost(config: Settings, authString: string, postTitle: stri
   }
 
   if (featured && postResponse) {
-    await doLemmyPostFeature(config, authString, postResponse.post.id)
+    await doLemmyPostFeature(config, authString, postResponse.post.id);
   }
+
+  return postResponse?.post?.id || 0;
 }
 
 /**
@@ -95,8 +104,8 @@ async function doLemmyPostFeature(config: Settings, authString: string, postId: 
 
   let fp: FeaturePost = {
     post_id: postId,
-    featured: false,
-    feature_type: 'Local',
+    featured: true,
+    feature_type: 'Community',
     auth: authString
   }
   
@@ -110,6 +119,71 @@ async function doLemmyPostFeature(config: Settings, authString: string, postId: 
     console.log(`Setting post featured failed: ${error}`);
     return false;
   }
+}
+
+/**
+ * Unset a lemmy post as Featured
+ * Note: requires mod rights
+ * @param config      Config blob
+ * @param authString  Authentication string
+ * @param postId      Post Id       
+ * @returns success/fail boolean
+ */
+async function doLemmyPostUnfeature(config: Settings, authString: string, postId: number): Promise<boolean> {
+  let client: LemmyHttp = new LemmyHttp(config.baseURL, undefined);
+
+  let fp: FeaturePost = {
+    post_id: postId,
+    featured: false,
+    feature_type: 'Community',
+    auth: authString
+  }
+  
+  try {
+    let unfeatureResponse = (await client.featurePost(fp)).post_view;
+    if (unfeatureResponse) {
+      console.log(`Post ${postId} has been unfeatured`);
+    }
+    return true;
+  } catch (error) {
+    console.log(`Setting post unfeatured failed: ${error}`);
+    return false;
+  }
+}
+
+/**
+ * Get post Ids for community posts
+ * @param config      Config blob
+ * @param authString  Authentication string
+ * @param filter      Only inlude posts with a title beginning with this string
+ * @param featured    Only include featured posts
+ * @returns           Array of post Ids
+ */
+async function getLemmyCommunityPostIDs(config: Settings, authString: string, filter: string, featured: boolean): Promise<Array<number>> {
+  let client: LemmyHttp = new LemmyHttp(config.baseURL, undefined);
+  
+  let gp: GetPosts = {
+    auth: authString,
+    community_id: config.communityId,
+    sort: "Active"
+  };
+
+  let result: Array<number> = [];
+
+  try {
+    let gpResponse = (await client.getPosts(gp)).posts;
+    gpResponse.forEach((p) => {
+      if ((filter && p.post.name.startsWith(filter)) &&
+          (!featured || (featured && p.post.featured_community))) {
+        console.log(`${p.post.name}`);
+        result.push(p.post.id);
+      }
+    });
+  } catch (error) {
+    console.log(error);
+  }
+ 
+  return result;
 }
 
 runBot();
