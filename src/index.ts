@@ -1,12 +1,16 @@
 import { LemmyHttp, Login, CreatePost, PostView, FeaturePost } from 'lemmy-js-client';
 import { Settings } from './settings.interface';
+import fs from 'fs';
 
 async function runBot() {
   var config: Settings = ({} as Settings);
   try {
-    config = require('./settings.json');
+    var data = fs.readFileSync('./settings.json', 'utf8');
+    data = JSON.parse(data);
+    config = ((data as unknown) as Settings);
   } catch (error) {
     console.log('No settings found. Do you need to create settings.json?');
+    return;
   }
   
   // Post title/ date string can be set here
@@ -20,7 +24,7 @@ async function runBot() {
   console.log(`Log in successful`);
 
   let authString = loginResult;
-  await doLemmyPost(config, authString, postTitle, true);
+  //await doLemmyPost(config, authString, postTitle, true);
   
   // tag a specific post
   //await doLemmyPostFeature(config, authString, 259388);
