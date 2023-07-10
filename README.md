@@ -1,4 +1,4 @@
-# lemmmy-post-bot #
+# lemmy-post-bot #
 
 Posts a daily discussion thread using the lemmy API.
 
