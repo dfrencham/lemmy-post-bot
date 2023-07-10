@@ -6,13 +6,13 @@ Create a wrapper script to call the bot, for example create bot-daily.sh contain
 
 ```bash
 #!/bin/bash
-node /home/user/lemmy-postbot/dist/lemmy-post-bot.js
+node /home/user/lemmy-postbot/dist/lemmy-post-bot.js -d
 ```
 
 Set permissions
 
 ```bash
-chmod bot-daily.sh
+chmod 755 bot-daily.sh
 ```
 
 Add an entry to crontab:

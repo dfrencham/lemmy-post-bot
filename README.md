@@ -21,7 +21,9 @@ Your settings.json file should have this content:
 
 ## Use ##
 
-To run the bot: `node dist/lemmy-post-bot.js`
+Run a connection test: `node dist/lemmy-post-bot.js -t`
+
+Do daily post: `node dist/lemmy-post-bot.js -d`
 
 ## Nightly Run
 

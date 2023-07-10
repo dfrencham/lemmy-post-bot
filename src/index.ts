@@ -2,21 +2,30 @@ import { LemmyHttp, Login, CreatePost, PostView, FeaturePost, GetPosts } from 'l
 import { Settings } from './settings.interface';
 import fs from 'fs';
 
-async function runBot() {
-  var config: Settings = ({} as Settings);
-  try {
-    var data = fs.readFileSync('./settings.json', 'utf8');
-    data = JSON.parse(data);
-    config = ((data as unknown) as Settings);
-  } catch (error) {
-    console.log('No settings found. Do you need to create settings.json?');
+async function runBot(mode: string) {
+
+  switch (mode) {
+    case "-d": // daily post
+    case "-t": // connection test
+      break;
+    default: // print version/about
+      mode = "-v"  ;
+      break;
+  }
+
+  if (mode === "-v") {
+    console.log(`Please use one of the following parameters:`);
+    console.log('   -t   Run a connection test only');
+    console.log('   -d   Do daily post based on settings.json file');
     return;
   }
-  
-  // Post title/ date string can be set here
-  let postTitleDaily = "Daily Discussion Thread";
-  let postTitle = `${postTitleDaily} - ${(new Date()).toDateString()}`;
-  console.log(`Using post title: ${postTitle}`);
+
+  var config: Settings;
+  let confResult  = getConfig();
+  if (confResult)
+    config = confResult;
+  else
+    return;
 
   let loginResult = await doLogin(config);
   if (!loginResult)
@@ -24,17 +33,28 @@ async function runBot() {
 
   console.log(`Log in successful`);
 
-  let authString = loginResult;
-  let newPost = await doLemmyPost(config, authString, postTitle, true);
-  
-  // unfeature posts except for our new post
-  let featuredPosts = await getLemmyCommunityPostIDs(config, authString, postTitleDaily, true);
-  featuredPosts.filter((v) => ((v != newPost) || !newPost)).forEach(async (fp) => {
-    await doLemmyPostUnfeature(config, authString, fp);
-  });
+  if (mode === "-t")
+    return; // connection test only
 
-  // tag a specific post
-  //await doLemmyPostFeature(config, authString, 259388);
+  if (mode === "-d")
+    doDailyPost(config, loginResult);
+}
+
+/**
+ * Retrieves config
+ * @returns Settings blob
+ */
+function getConfig(): Settings | null {
+  var config: Settings = ({} as Settings);
+  try {
+    var data = fs.readFileSync(`${__dirname}/settings.json`, 'utf8');
+    data = JSON.parse(data);
+    config = ((data as unknown) as Settings);
+  } catch (error) {
+    console.log('No settings found. Do you need to create settings.json?');
+    return null;
+  }
+  return config;
 }
 
 /**
@@ -56,6 +76,27 @@ async function doLogin(config: Settings): Promise<string | null> {
     return null;
   }
 }
+
+async function doDailyPost(config: Settings, authString: string): Promise<number> {
+ // Post title/ date string can be set here
+ let postTitleDaily = "Daily Discussion Thread";
+ let postTitle = `${postTitleDaily} - ${(new Date()).toDateString()}`;
+ console.log(`Using post title: ${postTitle}`);
+
+ let newPost = await doLemmyPost(config, authString, postTitle, true);
+ 
+ // unfeature posts except for our new post
+ let featuredPosts = await getLemmyCommunityPostIDs(config, authString, postTitleDaily, true);
+ featuredPosts.filter((v) => ((v != newPost) || !newPost)).forEach(async (fp) => {
+   await doLemmyPostUnfeature(config, authString, fp);
+ });
+
+ // tag a specific post
+ //await doLemmyPostFeature(config, authString, 259388);
+
+ return newPost;
+}
+
 
 /**
  * Create a Lemmy post
@@ -186,4 +227,6 @@ async function getLemmyCommunityPostIDs(config: Settings, authString: string, fi
   return result;
 }
 
-runBot();
+let argv = process.argv.slice(2);
+
+runBot(argv.length ? argv[argv.length-1] : "");
