@@ -108,9 +108,11 @@ async function doDailyPost(config: Settings, authString: string): Promise<number
 async function doLemmyPost(config: Settings, authString: string, postTitle: string, featured: boolean): Promise<number> {
   
   let client: LemmyHttp = new LemmyHttp(config.baseURL, undefined);
+  client.setHeaders({
+    Authorization: `Bearer ${authString}`
+  });
 
   let cp: CreatePost = {
-    auth: authString,
     community_id: config.communityId,
     name: postTitle,
   }
@@ -142,12 +144,14 @@ async function doLemmyPost(config: Settings, authString: string, postTitle: stri
  */
 async function doLemmyPostFeature(config: Settings, authString: string, postId: number): Promise<boolean> {
   let client: LemmyHttp = new LemmyHttp(config.baseURL, undefined);
+  client.setHeaders({
+    Authorization: `Bearer ${authString}`
+  });
 
   let fp: FeaturePost = {
     post_id: postId,
     featured: true,
-    feature_type: 'Community',
-    auth: authString
+    feature_type: 'Community'
   }
   
   try {
@@ -172,12 +176,14 @@ async function doLemmyPostFeature(config: Settings, authString: string, postId: 
  */
 async function doLemmyPostUnfeature(config: Settings, authString: string, postId: number): Promise<boolean> {
   let client: LemmyHttp = new LemmyHttp(config.baseURL, undefined);
+  client.setHeaders({
+    Authorization: `Bearer ${authString}`
+  });
 
   let fp: FeaturePost = {
     post_id: postId,
     featured: false,
-    feature_type: 'Community',
-    auth: authString
+    feature_type: 'Community'
   }
   
   try {
@@ -202,9 +208,11 @@ async function doLemmyPostUnfeature(config: Settings, authString: string, postId
  */
 async function getLemmyCommunityPostIDs(config: Settings, authString: string, filter: string, featured: boolean): Promise<Array<number>> {
   let client: LemmyHttp = new LemmyHttp(config.baseURL, undefined);
-  
+  client.setHeaders({
+    Authorization: `Bearer ${authString}`
+  });
+
   let gp: GetPosts = {
-    auth: authString,
     community_id: config.communityId,
     sort: "Active"
   };
